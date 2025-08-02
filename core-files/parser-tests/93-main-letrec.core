@@ -1,0 +1,4 @@
+main = letrec x = y;
+              y = z * 2;
+              z = 2 + 1
+           in x + 2

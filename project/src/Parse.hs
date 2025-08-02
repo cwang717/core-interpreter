@@ -38,8 +38,21 @@ id = do first <- oneOf ['a' .. 'z']
         spaces
         return $ first:rest
 
+letExpr :: Parser Expr
+letExpr = do
+  isRec <- (try (symbol "letrec") >> return True) <|> (symbol "let" >> return False)
+  bindings <- binding `sepBy1` (symbol ";")
+  _ <- symbol "in"
+  body <- expr
+  return $ ELet isRec bindings body
+  where
+    binding :: Parser (Name, Expr)
+    binding = do
+      name <- id
+      _ <- symbol "="
+      value <- orExpr
+      return (name, value)
 
-  
 eInt :: Parser Expr
 eInt = do i <- int
           return $ ENum i
@@ -49,7 +62,7 @@ eVar = do name <- id
           return $ EVar name
           
 expr :: Parser Expr
-expr = orExpr
+expr = letExpr <|> orExpr
 
 orExpr :: Parser Expr
 orExpr = do
