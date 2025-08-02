@@ -43,9 +43,13 @@ id = do first <- oneOf ['a' .. 'z']
 eInt :: Parser Expr
 eInt = do i <- int
           return $ ENum i
+
+eVar :: Parser Expr
+eVar = do name <- id
+          return $ EVar name
           
 expr :: Parser Expr
-expr = eInt
+expr = eInt <|> eVar
 
 decl :: Parser Decl
 decl = do name <- id
