@@ -12,6 +12,24 @@ eval (EVar name) env =
   case M.lookup name env of
     Nothing -> error $ "Variable " ++ name ++ " not defined"
     Just val -> val
+eval (EAp (EAp (EVar "+") e1) e2) env = eval e1 env + eval e2 env
+eval (EAp (EAp (EVar "-") e1) e2) env = eval e1 env - eval e2 env
+eval (EAp (EAp (EVar "*") e1) e2) env = eval e1 env * eval e2 env
+eval (EAp (EAp (EVar "/") e1) e2) env = 
+  let a = eval e1 env
+      b = eval e2 env
+  in if b == 0 then error "Division by zero"
+     else if a `mod` b == 0 then a `div` b
+     else error "Division result is not an integer"
+eval (EAp (EAp (EVar "<") e1) e2) env = if eval e1 env < eval e2 env then 1 else 0
+eval (EAp (EAp (EVar ">") e1) e2) env = if eval e1 env > eval e2 env then 1 else 0
+eval (EAp (EAp (EVar "<=") e1) e2) env = if eval e1 env <= eval e2 env then 1 else 0
+eval (EAp (EAp (EVar ">=") e1) e2) env = if eval e1 env >= eval e2 env then 1 else 0
+eval (EAp (EAp (EVar "==") e1) e2) env = if eval e1 env == eval e2 env then 1 else 0
+eval (EAp (EAp (EVar "~=") e1) e2) env = if eval e1 env /= eval e2 env then 1 else 0
+eval (EAp (EAp (EVar "&") e1) e2) env = if eval e1 env /= 0 && eval e2 env /= 0 then 1 else 0
+eval (EAp (EAp (EVar "|") e1) e2) env = if eval e1 env /= 0 || eval e2 env /= 0 then 1 else 0
+eval expr env = error $ "Cannot evaluate expression: " ++ show expr
 
 -- Use this function as your top-level entry point so you don't break `app/Main.hs`
 

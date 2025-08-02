@@ -49,7 +49,65 @@ eVar = do name <- id
           return $ EVar name
           
 expr :: Parser Expr
-expr = eInt <|> eVar
+expr = orExpr
+
+orExpr :: Parser Expr
+orExpr = do
+  left <- andExpr
+  rest <- many (do _ <- symbol "|"
+                   right <- andExpr
+                   return right)
+  return $ foldl (\l r -> EAp (EAp (EVar "|") l) r) left rest
+
+andExpr :: Parser Expr
+andExpr = do
+  left <- eqExpr
+  rest <- many (do _ <- symbol "&"
+                   right <- eqExpr
+                   return right)
+  return $ foldl (\l r -> EAp (EAp (EVar "&") l) r) left rest
+
+eqExpr :: Parser Expr
+eqExpr = do
+  left <- relExpr
+  rest <- many (do op <- (symbol "==" <|> symbol "~=")
+                   right <- relExpr
+                   return (op, right))
+  return $ foldl (\l (op, r) -> EAp (EAp (EVar op) l) r) left rest
+
+relExpr :: Parser Expr
+relExpr = do
+  left <- addExpr
+  rest <- many (do op <- (try (symbol "<=") <|> try (symbol ">=") <|> symbol "<" <|> symbol ">")
+                   right <- addExpr
+                   return (op, right))
+  return $ foldl (\l (op, r) -> EAp (EAp (EVar op) l) r) left rest
+
+addExpr :: Parser Expr
+addExpr = do
+  left <- mulExpr
+  rest <- many (do op <- (symbol "+" <|> symbol "-")
+                   right <- mulExpr
+                   return (op, right))
+  return $ foldl (\l (op, r) -> EAp (EAp (EVar op) l) r) left rest
+
+mulExpr :: Parser Expr
+mulExpr = do
+  left <- atom
+  rest <- many (do op <- (symbol "*" <|> symbol "/")
+                   right <- atom
+                   return (op, right))
+  return $ foldl (\l (op, r) -> EAp (EAp (EVar op) l) r) left rest
+
+atom :: Parser Expr
+atom = eInt <|> eVar <|> parenExpr
+
+parenExpr :: Parser Expr
+parenExpr = do
+  _ <- symbol "("
+  e <- expr
+  _ <- symbol ")"
+  return e
 
 decl :: Parser Decl
 decl = do name <- id
