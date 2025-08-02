@@ -38,6 +38,14 @@ id = do first <- oneOf ['a' .. 'z']
         spaces
         return $ first:rest
 
+lamExpr :: Parser Expr
+lamExpr = do
+  _ <- symbol "\\"
+  params <- many1 id
+  _ <- symbol "."
+  body <- expr
+  return $ ELam params body
+
 letExpr :: Parser Expr
 letExpr = do
   isRec <- (try (symbol "letrec") >> return True) <|> (symbol "let" >> return False)
@@ -60,9 +68,9 @@ eInt = do i <- int
 eVar :: Parser Expr
 eVar = do name <- id
           return $ EVar name
-          
+
 expr :: Parser Expr
-expr = letExpr <|> orExpr
+expr = lamExpr <|> letExpr <|> orExpr
 
 orExpr :: Parser Expr
 orExpr = do
@@ -106,11 +114,17 @@ addExpr = do
 
 mulExpr :: Parser Expr
 mulExpr = do
-  left <- atom
+  left <- appExpr
   rest <- many (do op <- (symbol "*" <|> symbol "/")
-                   right <- atom
+                   right <- appExpr
                    return (op, right))
   return $ foldl (\l (op, r) -> EAp (EAp (EVar op) l) r) left rest
+
+appExpr :: Parser Expr
+appExpr = do
+  func <- atom
+  args <- many atom
+  return $ foldl EAp func args
 
 atom :: Parser Expr
 atom = eInt <|> eVar <|> parenExpr

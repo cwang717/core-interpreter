@@ -5,7 +5,11 @@ module Types where
 
 import qualified Data.HashMap.Lazy as M
 
-type Env = M.HashMap Name Int  -- You will probably need to change this
+data Value = VNum Int 
+           | VFun [Name] Expr Env
+   deriving (Eq, Show)
+
+type Env = M.HashMap Name Value
 
 type Name = String
 type IsRec = Bool
