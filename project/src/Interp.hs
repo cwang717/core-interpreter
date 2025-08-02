@@ -48,8 +48,8 @@ run prog =
        in show result
 
 buildEnv :: Core -> Env
-buildEnv prog = M.fromList [(name, eval body env) | (name, [], body) <- M.elems prog, name /= "main"]
-  where env = buildEnv prog
+buildEnv prog = env
+  where env = M.fromList [(name, eval body env) | (name, [], body) <- M.elems prog]
   
 
 
