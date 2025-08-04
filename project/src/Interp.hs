@@ -3,21 +3,44 @@
 module Interp where
 
 import qualified Data.HashMap.Lazy as M
+import Data.Char (isUpper)
 
 import Types
 
 isTrue :: Value -> Bool
 isTrue (VNum n) = n /= 0
 isTrue (VFun _ _ _) = True
+isTrue (VPack _ _) = True
+
+isConstructor :: String -> Bool
+isConstructor (c:_) = isUpper c
+isConstructor [] = False
 
 eval :: Expr -> Env -> Value
 eval (ENum i) _ = VNum i
 eval (ELam params body) env = VFun params body env
-
+eval (EPack tag arity) env = VPack tag []
 eval (EVar name) env = 
   case M.lookup name env of
     Nothing -> error $ "Variable " ++ name ++ " not defined"
     Just val -> val
+
+eval (ECase scrutinee alternatives) env =
+  case eval scrutinee env of
+    VPack tag values ->
+      case findMatchingAlt tag alternatives of
+        Nothing -> error $ "No matching alternative for constructor " ++ show tag
+        Just (_, vars, body) ->
+          if length vars == length values
+          then let env' = foldl (\acc (var, val) -> M.insert var val acc) env (zip vars values)
+               in eval body env'
+          else error $ "Arity mismatch: expected " ++ show (length vars) ++ " but got " ++ show (length values)
+    _ -> error "Case scrutinee must be a constructor or number"
+  where
+    findMatchingAlt tag [] = Nothing
+    findMatchingAlt tag ((altTag, vars, body):rest)
+      | tag == altTag = Just (altTag, vars, body)
+      | otherwise = findMatchingAlt tag rest
 
 -- Put all specific binary operator patterns FIRST
 eval (EAp (EAp (EVar "+") e1) e2) env = 
@@ -77,6 +100,9 @@ eval (ELet isRec bindings body) env =
 
 eval (EAp func arg) env = 
   case eval func env of
+    VPack tag values ->
+      let argVal = eval arg env
+      in VPack tag (values ++ [argVal])
     VFun (param:params) body closureEnv ->
       let argVal = eval arg env
           env' = M.insert param argVal closureEnv
@@ -86,14 +112,14 @@ eval (EAp func arg) env =
     VFun [] _ _ -> error "Cannot apply function with no parameters"
     VNum _ -> error "Cannot apply non-function value"
 
-eval expr env = error $ "Cannot evaluate expression: " ++ show expr
-
 -- Use this function as your top-level entry point so you don't break `app/Main.hs`
 
 run :: Core -> String
 run prog =
   case M.lookup "main" prog of
-    Nothing -> error "Supercombinator main not defined."
+    Nothing -> 
+      let allDecls = M.keys prog
+      in error $ "Supercombinator main not defined. Declarations: " ++ unwords allDecls
     Just (_,[],mainBody) ->
       let env = buildEnv prog
           result = eval mainBody env
@@ -109,3 +135,4 @@ buildEnv prog = env
                                  then eval body env 
                                  else VFun params body env) 
                          | (name, params, body) <- M.elems prog]
+    

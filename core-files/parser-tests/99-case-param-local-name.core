@@ -1,0 +1,8 @@
+numPair ::= EmptyPair | MkNumPair num num;
+p = MkNumPair 1 2;
+a = 3;
+b = 4;
+sumPair x = case x of
+  <1> -> 0;
+  <2> a b -> a + b;
+main = sumPair p

@@ -7,6 +7,7 @@ import qualified Data.HashMap.Lazy as M
 
 data Value = VNum Int 
            | VFun [Name] Expr Env
+           | VPack Int [Value]
    deriving (Eq, Show)
 
 type Env = M.HashMap Name Value
