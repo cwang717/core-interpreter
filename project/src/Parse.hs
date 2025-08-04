@@ -169,7 +169,7 @@ mulExpr = do
 appExpr :: Parser Expr
 appExpr = do
   func <- atom
-  args <- many atom
+  args <- many (try atom)
   return $ foldl EAp func args
 
 atom :: Parser Expr
